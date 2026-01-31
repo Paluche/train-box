@@ -5,6 +5,7 @@ use btleplug::{api::Manager as _, platform::Manager};
 use rppal::gpio::Gpio;
 use strum::IntoEnumIterator;
 use tokio::time::{Duration, sleep};
+use train_box::rpi_io;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
