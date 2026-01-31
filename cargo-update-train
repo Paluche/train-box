@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+DST="/home/hlefevre/train"
+
+scp target/aarch64-unknown-linux-gnu/debug/train "pifive:${DST}"
+ssh pifive "chmod +x ${DST} && ${DST}"

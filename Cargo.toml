@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+brio-smart-tech = { git = "https://github.com/Paluche/brio-smart-tech.git" }
+btleplug = "0.11.8"
+dbus = { version = "0.9.7", features = ["vendored"] }
+strum = "0.27.2"
+tokio = "1.49.0"
+
+[[bin]]
+# This is the main binary that runs on the raspberry pi
+name = "train"
+path = "src/main.rs"
