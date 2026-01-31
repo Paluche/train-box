@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-DST="/home/hlefevre/train"
+set -e
 
-scp target/aarch64-unknown-linux-gnu/debug/train "pifive:${DST}"
+EXEC_NAME=train-box
+SRC="target/aarch64-unknown-linux-gnu/debug/${EXEC_NAME}"
+DST="/home/hlefevre/${EXEC_NAME}"
+
+scp "${SRC}" "pifive:${DST}"
 ssh pifive "chmod +x ${DST} && ${DST}"

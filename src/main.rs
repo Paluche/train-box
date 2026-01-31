@@ -2,11 +2,24 @@ use std::error::Error;
 
 use brio_smart_tech::{BrioSmartTech, Color};
 use btleplug::{api::Manager as _, platform::Manager};
+use rppal::gpio::Gpio;
 use strum::IntoEnumIterator;
 use tokio::time::{Duration, sleep};
 
 #[tokio::main]
-async fn main()  -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), Box<dyn Error>> {
+    let gpio = Gpio::new()?;
+    let mut pin = gpio.get(23)?.into_output();
+
+    {
+        println!("High");
+        pin.set_high();
+        sleep(Duration::from_secs(1)).await;
+        println!("Low");
+        pin.set_low();
+        sleep(Duration::from_secs(1)).await;
+    }
+
     println!("Initializing BLE manager");
     let manager = Manager::new().await.unwrap();
     // Get the first bluetooth adapter

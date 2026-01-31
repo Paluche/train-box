@@ -1,5 +1,5 @@
 [package]
-name = "train"
+name = "train-box"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,10 +7,11 @@ edition = "2024"
 brio-smart-tech = { git = "https://github.com/Paluche/brio-smart-tech.git" }
 btleplug = "0.11.8"
 dbus = { version = "0.9.7", features = ["vendored"] }
+rppal = "0.22.1"
 strum = "0.27.2"
 tokio = "1.49.0"
 
 [[bin]]
 # This is the main binary that runs on the raspberry pi
-name = "train"
+name = "train-box"
 path = "src/main.rs"
