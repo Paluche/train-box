@@ -7,4 +7,4 @@ SRC="target/aarch64-unknown-linux-gnu/debug/${EXEC_NAME}"
 DST="/home/hlefevre/${EXEC_NAME}"
 
 scp "${SRC}" "pifive:${DST}"
-ssh pifive "chmod +x ${DST} && ${DST}"
+#ssh pifive "chmod +x ${DST} && ${DST}"

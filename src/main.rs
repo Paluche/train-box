@@ -1,25 +1,27 @@
-use std::error::Error;
+use std::{error::Error, sync::Arc};
 
 use brio_smart_tech::{BrioSmartTech, Color};
 use btleplug::{api::Manager as _, platform::Manager};
-use rppal::gpio::Gpio;
-use strum::IntoEnumIterator;
-use tokio::time::{Duration, sleep};
-use train_box::rpi_io;
+use tokio::{
+    sync::{
+        Mutex,
+        broadcast::{Receiver, Sender, channel},
+    },
+    time::{Duration, sleep},
+};
+use train_box::rpi_io::RpiIo;
+
+#[derive(Debug, Clone)]
+enum Message {
+    Disconnected,
+    Forward,
+    Backward,
+    ChangeColor,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let gpio = Gpio::new()?;
-    let mut pin = gpio.get(23)?.into_output();
-
-    {
-        println!("High");
-        pin.set_high();
-        sleep(Duration::from_secs(1)).await;
-        println!("Low");
-        pin.set_low();
-        sleep(Duration::from_secs(1)).await;
-    }
+    let mut rpi_io = RpiIo::new()?;
 
     println!("Initializing BLE manager");
     let manager = Manager::new().await.unwrap();
@@ -27,34 +29,108 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let adapters = manager.adapters().await.unwrap();
     let central = adapters.first().unwrap();
 
-    println!("Searching for train");
-    let train = BrioSmartTech::new(central)
-        .await?
-        .expect("device not found");
+    loop {
+        println!("Searching for train");
+        rpi_io.led_disconnected_set_high().await;
+        rpi_io.led_connected_set_low().await;
+        let train = Arc::new(Mutex::new(
+            BrioSmartTech::new(central)
+                .await?
+                .expect("device not found"),
+        ));
+        println!("Device found");
+        let (tx, rx) = channel(100);
+        let tx = Arc::new(tx);
+        let bf_tx = tx.clone();
 
-    println!("Sending different colors");
-    for c in Color::iter() {
-        println!("Color {c:?}");
-        for i in 0..16 {
-            train.set_color(c, i).await?;
-            sleep(Duration::from_millis(100)).await;
+        rpi_io
+            .button_forward_set_async_interrupt(move |_event| {
+                bf_tx.send(Message::Forward).unwrap();
+            })
+            .await?;
+
+        let bb_tx = tx.clone();
+        rpi_io
+            .button_backward_set_async_interrupt(move |_event| {
+                bb_tx.send(Message::Backward).unwrap();
+            })
+            .await?;
+
+        rpi_io.led_disconnected_set_low().await;
+        rpi_io.led_connected_set_high().await;
+        // let _= tokio::task::spawn(watch_connected(train.clone(),
+        // tx.clone())).await;
+
+        let _ = manage_train(train, rx)
+            .await
+            .inspect_err(|e| println!("{e}"));
+        println!("Disconnected");
+    }
+}
+
+// TODO Need a task that watches that we are still connected to the device to
+// unlock manage_train loop.
+async fn watch_connected(
+    train: Arc<Mutex<BrioSmartTech>>,
+    tx: Arc<Sender<Message>>,
+) {
+    loop {
+        let res = train.lock().await.is_connected().await;
+
+        if res.is_err() || res.unwrap() {
+            tx.send(Message::Disconnected).unwrap();
+            break;
         }
+        sleep(Duration::from_secs(1)).await;
+    }
+}
+
+async fn manage_train(
+    train: Arc<Mutex<BrioSmartTech>>,
+    mut rx: Receiver<Message>,
+) -> Result<(), Box<dyn Error>> {
+    enum State {
+        Stopped,
+        Forward,
+        Backward,
     }
 
-    train.set_color(Color::White, 15).await?;
-    sleep(Duration::from_millis(300)).await;
+    let mut state = State::Stopped;
 
-    println!("Forward");
-    train.forward(7).await?;
-    sleep(Duration::from_secs(10)).await;
+    loop {
+        let message = rx.recv().await.inspect_err(|e| eprintln!("{e}"));
 
-    println!("Backward");
-    train.backward(7).await?;
-    sleep(Duration::from_secs(1)).await;
+        if message.is_err() {
+            break;
+        }
 
-    println!("Stop");
-    train.stop().await?;
-    sleep(Duration::from_millis(300)).await;
+        let message = message.unwrap();
+
+        match message {
+            Message::Forward => {
+                println!("Forward pressed");
+                if matches!(state, State::Forward) {
+                    train.lock().await.stop().await?;
+                    state = State::Stopped;
+                } else {
+                    train.lock().await.forward(7).await?;
+                    state = State::Forward;
+                }
+            }
+            Message::Backward => {
+                println!("Backward pressed");
+                if matches!(state, State::Backward) {
+                    train.lock().await.stop().await?;
+                    state = State::Stopped;
+                } else {
+                    train.lock().await.backward(7).await?;
+                    state = State::Backward;
+                }
+            }
+            Message::ChangeColor => (),
+            Message::Disconnected => return Ok(()),
+        }
+    }
 
     Ok(())
 }
