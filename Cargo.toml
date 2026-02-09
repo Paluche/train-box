@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-brio-smart-tech = { git = "https://github.com/Paluche/brio-smart-tech.git", branch = "wip" }
+brio-smart-tech = { git = "https://github.com/Paluche/brio-smart-tech.git", branch = "main" }
 btleplug = "0.11.8"
 dbus = { version = "0.9.10", features = ["vendored"] }
 rppal = "0.22.1"
