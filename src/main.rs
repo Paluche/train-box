@@ -15,6 +15,7 @@ use train_box::rpi_io::RpiIo;
 enum Message {
     Disconnected,
     Forward,
+    Pause,
     Backward,
     ChangeColor,
 }
@@ -33,11 +34,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("Searching for train");
         rpi_io.led_disconnected_set_high().await;
         rpi_io.led_connected_set_low().await;
-        let train = Arc::new(Mutex::new(
-            BrioSmartTech::new(central)
-                .await?
-                .expect("device not found"),
-        ));
+        let train = BrioSmartTech::new(central)
+                .await?;
         println!("Device found");
         let (tx, rx) = channel(100);
         let tx = Arc::new(tx);
@@ -53,6 +51,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         rpi_io
             .button_backward_set_async_interrupt(move |_event| {
                 bb_tx.send(Message::Backward).unwrap();
+            })
+            .await?;
+
+        let bp_tx = tx.clone();
+        rpi_io
+            .button_pause_set_async_interrupt(move |_event| {
+                bp_tx.send(Message::Pause).unwrap();
             })
             .await?;
 
@@ -115,6 +120,13 @@ async fn manage_train(
                 } else {
                     train.lock().await.forward(7).await?;
                     state = State::Forward;
+                }
+            }
+            Message::Pause => {
+                println!("Pause pressed");
+                if !matches!(state, State::Stopped) {
+                    train.lock().await.stop().await?;
+                    state = State::Stopped;
                 }
             }
             Message::Backward => {
