@@ -8,7 +8,7 @@ brio-smart-tech = { git = "https://github.com/Paluche/brio-smart-tech.git", bran
 btleplug = "0.11.8"
 dbus = { version = "0.9.10", features = ["vendored"] }
 rppal = "0.22.1"
-strum = "0.27.2"
+strum = "0.28.0"
 tokio = { version = "1.49.0", features = ["rt", "sync"] }
 
 [[bin]]
