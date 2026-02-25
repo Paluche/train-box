@@ -142,9 +142,9 @@ async fn manage_train(
                 }
             }
             Message::ChangeColor => {
-                println!("Change Color");
                 color = color.next();
-                train.lock().await.set_color(color, 16).await?;
+                println!("Change Color {color:?}");
+                train.lock().await.set_color(color, 10).await?;
             }
             Message::Disconnected => return Ok(()),
         }
