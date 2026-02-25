@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let bp_tx = tx.clone();
         rpi_io
             .button_pause_set_async_interrupt(move |_event| {
-                bp_tx.send(Message::Pause).unwrap();
+                bp_tx.send(Message::ChangeColor).unwrap();
             })
             .await?;
 
@@ -101,6 +101,8 @@ async fn manage_train(
     }
 
     let mut state = State::Stopped;
+    let mut color = Color::Off;
+
 
     loop {
         let message = rx.recv().await.inspect_err(|e| eprintln!("{e}"));
@@ -139,7 +141,11 @@ async fn manage_train(
                     state = State::Backward;
                 }
             }
-            Message::ChangeColor => (),
+            Message::ChangeColor => {
+                println!("Change Color");
+                color = color.next();
+                train.lock().await.set_color(color, 16).await?;
+            }
             Message::Disconnected => return Ok(()),
         }
     }
