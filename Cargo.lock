@@ -60,7 +60,7 @@ dependencies = [
 [[package]]
 name = "brio-smart-tech"
 version = "0.1.0"
-source = "git+https://github.com/Paluche/brio-smart-tech.git?branch=main#2b1fd7332afff348cb7d11db54fc4474c04c441b"
+source = "git+https://github.com/Paluche/brio-smart-tech.git?branch=main#b1f071193ae100c164d658bb2a43e0fa7e29fa45"
 dependencies = [
  "btleplug",
  "futures",
